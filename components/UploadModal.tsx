@@ -29,6 +29,7 @@ const UploadModal = () => {
 
   const onChange = (open: boolean) => {
     if (!open) {
+      reset();
       uploadModal.onClose();
     }
   };
@@ -39,6 +40,9 @@ const UploadModal = () => {
 
       const imageFile = values.image?.[0];
       const songFile = values.song?.[0];
+      //   console.log(imageFile);
+      //   console.log(songFile);
+      console.log(values.title);
 
       if (!imageFile || !songFile || !user) {
         toast.error("缺少上传歌曲必备的内容");
@@ -46,18 +50,6 @@ const UploadModal = () => {
       }
 
       const uniqueId = uniqid;
-
-      // 上传歌曲
-      const { data: songData, error: songError } = await supabaseClient.storage
-        .from("songs")
-        .upload(`song-${values.title}-${uniqueId}`, songFile, {
-          cacheControl: "3600",
-          upsert: false,
-        });
-      if (songError) {
-        setIsLoading(false);
-        return toast.error("歌曲上传失败");
-      }
 
       // 上传图片
       const { data: imageData, error: imageError } =
@@ -70,6 +62,18 @@ const UploadModal = () => {
       if (imageError) {
         setIsLoading(false);
         return toast.error("图片上传失败");
+      }
+
+      // 上传歌曲
+      const { data: songData, error: songError } = await supabaseClient.storage
+        .from("songs")
+        .upload(`song-${values.title}-${uniqueId}`, songFile, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+      if (songError) {
+        setIsLoading(false);
+        return toast.error("歌曲上传失败");
       }
 
       const { error: supabaseError } = await supabaseClient
@@ -124,7 +128,7 @@ const UploadModal = () => {
             id="song"
             type="file"
             disabled={isLoading}
-            accept=".flac   "
+            accept=".mp3"
             {...register("song", { required: true })}
           />
         </div>
