@@ -1,11 +1,23 @@
 "use client";
-import React from "react";
+import useAuthModal from "@/hooks/useAuthModal";
+import useUploadModal from "@/hooks/useUploadModal";
+import { useUser } from "@/hooks/useUser";
 import { AiOutlinePlus } from "react-icons/ai";
 import { TbPlaylist } from "react-icons/tb";
 
 const Library = () => {
+  const authModal = useAuthModal();
+  const uploadModal = useUploadModal();
+  const { user } = useUser();
   const onClick = () => {
-    //实现点击添加音乐
+    if (!user) {
+      console.log("first");
+      return authModal.onOpen();
+    }
+
+    // TODO:核实会员
+
+    return uploadModal.onOpen();
   };
   return (
     <div className="flex flex-col">
