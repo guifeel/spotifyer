@@ -1,21 +1,25 @@
 "use client";
-import React, { useState } from "react";
-import Modal from "./Modal";
-import useUploadModal from "@/hooks/useUploadModal";
-import { FieldValues, SubmitHandler, set, useForm } from "react-hook-form";
+
 import uniqid from "uniqid";
-import Input from "./Input";
-import Button from "./Button";
-import toast from "react-hot-toast";
-import { useUser } from "@/hooks/useUser";
+import React, { useState } from "react";
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
+import { FieldValues, SubmitHandler, useForm } from "react-hook-form";
+import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 
+import useUploadModal from "@/hooks/useUploadModal";
+import { useUser } from "@/hooks/useUser";
+
+import Modal from "./Modal";
+import Input from "./Input";
+import Button from "./Button";
+
 const UploadModal = () => {
-  const uploadModal = useUploadModal();
   const [isLoading, setIsLoading] = useState(false);
-  const { user } = useUser();
+
+  const uploadModal = useUploadModal();
   const supabaseClient = useSupabaseClient();
+  const { user } = useUser();
   const router = useRouter();
 
   const { register, handleSubmit, reset } = useForm<FieldValues>({
@@ -40,42 +44,42 @@ const UploadModal = () => {
 
       const imageFile = values.image?.[0];
       const songFile = values.song?.[0];
-      //   console.log(imageFile);
-      //   console.log(songFile);
-      console.log(values.title);
 
       if (!imageFile || !songFile || !user) {
-        toast.error("缺少上传歌曲必备的内容");
+        toast.error("缺少上传歌曲需要的内容");
         return;
       }
 
-      const uniqueId = uniqid;
+      const uniqueID = uniqid();
 
-      // 上传图片
-      const { data: imageData, error: imageError } =
-        await supabaseClient.storage
-          .from("images")
-          .upload(`image-${values.title}-${uniqueId}`, imageFile, {
-            cacheControl: "3600",
-            upsert: false,
-          });
-      if (imageError) {
-        setIsLoading(false);
-        return toast.error("图片上传失败");
-      }
-
-      // 上传歌曲
+      // Upload song
       const { data: songData, error: songError } = await supabaseClient.storage
         .from("songs")
-        .upload(`song-${values.title}-${uniqueId}`, songFile, {
+        .upload(`song-${values.title}-${uniqueID}`, songFile, {
           cacheControl: "3600",
           upsert: false,
         });
+
       if (songError) {
         setIsLoading(false);
-        return toast.error("歌曲上传失败");
+        return toast.error("歌曲上传失败！");
       }
 
+      // Upload image
+      const { data: imageData, error: imageError } =
+        await supabaseClient.storage
+          .from("images")
+          .upload(`image-${values.title}-${uniqueID}`, imageFile, {
+            cacheControl: "3600",
+            upsert: false,
+          });
+
+      if (imageError) {
+        setIsLoading(false);
+        return toast.error("封面上传失败！");
+      }
+
+      // Create record
       const { error: supabaseError } = await supabaseClient
         .from("songs")
         .insert({
@@ -85,18 +89,18 @@ const UploadModal = () => {
           image_path: imageData.path,
           song_path: songData.path,
         });
+
       if (supabaseError) {
-        setIsLoading(false);
         return toast.error(supabaseError.message);
       }
 
       router.refresh();
       setIsLoading(false);
-      toast.success("歌曲上传成功");
+      toast.success("歌曲上传成功！");
       reset();
       uploadModal.onClose();
     } catch (error) {
-      toast.error("出错了");
+      toast.error("出错了...");
     } finally {
       setIsLoading(false);
     }
@@ -104,8 +108,8 @@ const UploadModal = () => {
 
   return (
     <Modal
-      title="上传一首歌"
-      description="请上传音频文件"
+      title="Add a song"
+      description="Upload an mp3 file"
       isOpen={uploadModal.isOpen}
       onChange={onChange}
     >
@@ -123,26 +127,28 @@ const UploadModal = () => {
           placeholder="上传作者"
         />
         <div>
-          <div className="pb-1">选取歌曲文件</div>
+          <div className="pb-1">选择一首歌曲</div>
           <Input
-            id="song"
-            type="file"
+            placeholder="test"
             disabled={isLoading}
+            type="file"
             accept=".mp3"
+            id="song"
             {...register("song", { required: true })}
           />
         </div>
         <div>
-          <div className="pb-1">选取图片</div>
+          <div className="pb-1">选择一张图片</div>
           <Input
-            id="image"
-            type="file"
+            placeholder="test"
             disabled={isLoading}
+            type="file"
             accept="image/*"
+            id="image"
             {...register("image", { required: true })}
           />
         </div>
-        <Button type="submit" disabled={isLoading}>
+        <Button disabled={isLoading} type="submit">
           上传
         </Button>
       </form>
